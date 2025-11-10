@@ -1,34 +1,12 @@
 // --- 1. SETUP & CONSTANTS ---
 console.log("script.js is running...");
 
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-const gameOverScreen = document.getElementById('game-over-screen');
+// --- This is the new, safe way to get elements ---
+// We *define* the variables here, but we *assign* them in setupGame()
+let canvas, ctx, gameOverScreen, playerElixirDisplay, playerCardElements, botElixirDisplay, botCardElements, twoPlayerButton;
 
-const playerElixirDisplay = document.getElementById('player-elixir-display');
-const playerCardElements = [
-    document.getElementById('card-0'),
-    document.getElementById('card-1'),
-    document.getElementById('card-2'),
-    document.getElementById('card-3')
-];
-const botElixirDisplay = document.getElementById('bot-elixir-display');
-const botCardElements = [
-    document.getElementById('bot-card-0'),
-    document.getElementById('bot-card-1'),
-    document.getElementById('bot-card-2'),
-    document.getElementById('bot-card-3')
-];
-const twoPlayerButton = document.getElementById('two-player-toggle');
-
-if (!canvas) {
-    console.error("CRITICAL ERROR: 'game-canvas' not found. Check your index.html file.");
-} else {
-    console.log("Canvas found successfully.");
-}
-
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
+const WIDTH = 480;
+const HEIGHT = 600;
 const RIVER_Y = HEIGHT / 2;
 const LEFT_BRIDGE_X = WIDTH / 4;
 const RIGHT_BRIDGE_X = WIDTH * 3 / 4;
@@ -90,17 +68,8 @@ const GOBLIN_HUT_STATS = { name: 'Goblin Hut', cost: 5, hp: 300, type: 'Building
 const SKELETON_TOMB_STATS = { name: 'Tombstone', cost: 3, hp: 200, type: 'Building', spawnType: SKELETONS_STATS, spawnRate: 3.0, lifetime: 25, width: 40, height: 40, colors: ['#888', '#555'] };
 const FURNACE_STATS = { name: 'Furnace', cost: 4, hp: 250, type: 'Building', spawnType: { name: 'Fire Spirit', cost: 0, hp: 20, damage: 30, attackRange: 30, attackSpeed: 1, speed: 2.2, width: 15, targetType: 'Ground', aoe: true, colors:['#ff4500', '#ffff00'], detail: {type:'dot', color:'red'} }, spawnRate: 6.0, lifetime: 30, width: 45, height: 45, colors: ['#555', '#ff4500'] };
 
-// --- Master List ---
-const MASTER_CARD_LIST = [
-    KNIGHT_STATS, ARCHER_STATS, GIANT_STATS, FIREBALL_STATS, ARROWS_STATS,
-    MINIONS_STATS, VALKYRIE_STATS, MINI_PEKKA_STATS, WIZARD_STATS, HOG_RIDER_STATS,
-    GOBLIN_HUT_STATS, SKELETONS_STATS, MUSKETEER_STATS, RAGE_STATS, FREEZE_STATS,
-    PEKKA_STATS, BABY_DRAGON_STATS, SKELETON_TOMB_STATS, GOLEM_STATS, LAVA_HOUND_STATS,
-    FURNACE_STATS, MEGA_KNIGHT_STATS, ROYAL_KNIGHT_STATS, GOBLIN_MACHINE_STATS,
-    ICE_KNIGHT_STATS
-];
+const LOOT_POOL = [HOG_RIDER_STATS, MEGA_KNIGHT_STATS, GOLEM_STATS, LAVA_HOUND_STATS, PEKKA_STATS];
 
-// --- UPDATED: Tower Stats ---
 const PRINCESS_TOWER_STATS = {hp: 1000, damage: 50, attackRange: 200, attackSpeed: 0.8, type: 'princess', width: 60, height: 80};
 const KING_TOWER_STATS = {hp: 1500, damage: 35, attackRange: 180, attackSpeed: 1, type: 'king', width: 70, height: 95};
 
@@ -111,7 +80,6 @@ let allGameObjects = [];
 
 let playerKing, playerP1, playerP2, botKing, botP1, botP2;
 
-// --- UPDATED DECKS (Pulled from new Master List) ---
 let playerDeck = [KNIGHT_STATS, ARCHER_STATS, GIANT_STATS, FIREBALL_STATS, ICE_KNIGHT_STATS, HOG_RIDER_STATS, MINIONS_STATS, GOBLIN_HUT_STATS];
 let playerHand = [];
 let playerDeckNextCardIndex = 0;
@@ -130,7 +98,7 @@ let lastTime = 0;
 let isTwoPlayer = false;
 let playerKillCount = 0;
 let botKillCount = 0;
-const KILLS_FOR_NEW_CARD = 10; // Lowered for more fun
+const KILLS_FOR_NEW_CARD = 10;
 
 
 // --- 2. CLASSES ---
@@ -148,7 +116,7 @@ class GameObject {
         this.lastAttackTime = 0;
         this.isAlive = true;
         
-        this.statusEffect = { name: 'none', duration: 0, attackSpeedMod: 1.0 }; // Added attackSpeedMod for Rage
+        this.statusEffect = { name: 'none', duration: 0, attackSpeedMod: 1.0 };
         this.originalAttackSpeed = stats.attackSpeed;
     }
 
@@ -161,27 +129,24 @@ class GameObject {
         ctx.fill();
     }
     
-    // --- NEW: drawDetails ---
     drawDetails() {
-        // Base Unit (Knight, etc.)
         if (this.stats.detail) {
             ctx.fillStyle = this.stats.colors[1] || 'white';
             ctx.strokeStyle = this.stats.detail.color || 'white';
             ctx.lineWidth = this.stats.detail.h || 2;
             
-            // Draw a "face" circle
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.width * 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw a "weapon" line
-            ctx.beginPath();
-            ctx.moveTo(this.x + this.width / 2, this.y);
-            ctx.lineTo(this.x + this.width / 2 + this.stats.detail.w, this.y);
-            ctx.stroke();
+            if (this.stats.detail.type === 'dot') {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.width * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (this.stats.detail.type === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + this.stats.detail.w, this.y);
+                ctx.stroke();
+            }
         }
 
-        // Draw angry face
         ctx.fillStyle = 'white';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
@@ -199,12 +164,11 @@ class GameObject {
             ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
             ctx.fill();
             
-            // Draw overlays
             this.drawDetails();
 
         } else if (this instanceof Tower) {
             ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-        } else if (this instanceof Building) { // --- NEW ---
+        } else if (this instanceof Building) {
             ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
         } else if (this instanceof Projectile) {
             ctx.strokeStyle = PROJECTILE_COLOR;
@@ -222,7 +186,6 @@ class GameObject {
             this.drawName();
         }
         
-        // Draw Status Effects
         if (this.statusEffect.duration > 0) {
             if (this.statusEffect.name === 'frozen') {
                 ctx.fillStyle = ICE_EFFECT_COLOR;
@@ -230,7 +193,7 @@ class GameObject {
                 ctx.arc(this.x, this.y, this.width / 2 + 5, 0, Math.PI * 2);
                 ctx.fill();
             } else if (this.statusEffect.name === 'rage') {
-                ctx.fillStyle = 'rgba(255, 0, 255, 0.3)'; // Rage purple
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.3)';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.width / 2 + 8, 0, Math.PI * 2);
                 ctx.fill();
@@ -273,7 +236,7 @@ class GameObject {
         this.statusEffect.duration = duration;
         
         if (name === 'rage') {
-            this.stats.attackSpeed /= 2; // Attack twice as fast
+            this.stats.attackSpeed = this.originalAttackSpeed / 2; // Attack twice as fast
         } else if (name === 'none') {
             this.stats.attackSpeed = this.originalAttackSpeed; // Reset
         }
@@ -281,7 +244,7 @@ class GameObject {
     
     findTarget(enemyUnits, enemyTowers) {
         if (this.target && this.target.isAlive) {
-            if (getDistance(this, this.target) > this.stats.attackRange * 1.2) { // * 1.2 to prevent jitter
+            if (getDistance(this, this.target) > this.stats.attackRange * 1.2) {
                 this.target = null;
             } else {
                 return;
@@ -292,11 +255,10 @@ class GameObject {
         let closestEnemy = null;
         let minDistance = Infinity;
         
-        // --- NEW Flying/Ground Logic ---
         let attackableEnemies = [];
-        if (this.stats.targetType === 'Air') { // I am a flying unit
-             attackableEnemies = [...enemyUnits.filter(e => e.stats.targetType === 'Air' || e.stats.targetType === 'Ground'), ...enemyTowers];
-        } else { // I am a ground unit
+        if (this.stats.targetType === 'Air') {
+             attackableEnemies = [...enemyUnits, ...enemyTowers]; // Flying units hit air & ground
+        } else {
             attackableEnemies = [...enemyUnits.filter(e => e.stats.targetType !== 'Air'), ...enemyTowers];
         }
         
@@ -363,10 +325,12 @@ class GameObject {
                 } else {
                     this.target.takeDamage(this.stats.damage, this.team);
                     spawnHitSplat(this.target.x, this.target.y, this.target.width, HIT_SPLAT_COLOR);
-                    // Apply freeze if attacker is Ice Knight
                     if (this.stats.freeze) {
                         this.target.applyStatus('frozen', this.stats.freeze);
                         spawnHitSplat(this.target.x, this.target.y, this.target.width, '#00aaff');
+                    }
+                    if(this.stats.aoe) {
+                         // TODO: Add melee AOE damage
                     }
                 }
             }
@@ -380,10 +344,8 @@ class GameObject {
                 return;
             }
         } else if (this.statusEffect.name !== 'none') {
-             this.applyStatus('none', 0); // Reset stats
+             this.applyStatus('none', 0);
         }
-        
-        // Implemented by subclasses
     }
 }
 
@@ -405,7 +367,6 @@ class Tower extends GameObject {
         
         if (!this.isAlive) return;
         
-        // --- UPDATED: Towers now respect flying units ---
         const attackableEnemies = [...enemyUnits, ...enemyTowers];
         this.findTarget(attackableEnemies); 
 
@@ -432,10 +393,12 @@ class Tower extends GameObject {
 
         for (const enemy of allEnemies) {
             if (!enemy.isAlive) continue;
-            const distance = getDistance(this, enemy);
-            if (distance < minDistance && distance <= this.stats.attackRange) {
-                minDistance = distance;
-                closestEnemy = enemy;
+            if (enemy.stats.targetType === 'Air' || enemy.stats.targetType === 'Ground' || enemy.stats.targetType === 'Buildings') {
+                const distance = getDistance(this, enemy);
+                if (distance < minDistance && distance <= this.stats.attackRange) {
+                    minDistance = distance;
+                    closestEnemy = enemy;
+                }
             }
         }
         this.target = closestEnemy;
@@ -465,7 +428,6 @@ class Unit extends GameObject {
 
         if (!finalTarget) return null;
 
-        // --- NEW: Flying units don't use bridges ---
         if (this.stats.targetType === 'Air') {
             return finalTarget;
         }
@@ -521,7 +483,7 @@ class Unit extends GameObject {
             // No enemy target, follow the path
             if (this.stats.targetType === 'Buildings') {
                  this.pathTarget = (this.team === 'player') ? getBotTarget(this.x) : getPlayerTarget(this.x);
-                 if(this.pathTarget) this.target = this.pathTarget;
+                 if(this.pathTarget) this.target = this.pathTarget; // Re-assign target
                  return; 
             }
 
@@ -537,7 +499,7 @@ class Unit extends GameObject {
                 
                 if (waypoint === this.pathTarget && waypointDist <= this.stats.attackRange) {
                     this.target = this.pathTarget;
-                    this.attack(currentTime);
+                    if(this.target) this.attack(currentTime);
                 }
                 else if (waypoint !== this.pathTarget && waypointDist <= this.stats.speed * 3) {
                     this.moveTowards(this.pathTarget);
@@ -550,22 +512,22 @@ class Unit extends GameObject {
     }
 
     moveTowards(target) {
-        const dx = target.x - this.x;
+        // --- CRITICAL BUG FIX 1 ---
+        const dx = target.x - this.x; // <-- FIXED
         const dy = target.y - this.y;
         const distance = Math.hypot(dx, dy);
 
-        if (distance < 1) { 
+        // --- CRITICAL BUG FIX 2 ---
+        if (distance < 1) { // Stop divide by zero
             return;
         }
         
-        // --- NEW: Flying units move directly ---
         if (this.stats.targetType === 'Air') {
             this.x += (dx / distance) * this.stats.speed;
             this.y += (dy / distance) * this.stats.speed;
             return;
         }
         
-        // Ground units pathfinding (simplified)
         if (distance > this.stats.speed) {
             this.x += (dx / distance) * this.stats.speed;
             this.y += (dy / distance) * this.stats.speed;
@@ -576,7 +538,6 @@ class Unit extends GameObject {
     }
 }
 
-// --- NEW CLASS: Building ---
 class Building extends GameObject {
     constructor(x, y, team, stats) {
         super(x, y, stats.width, stats.height, team, stats);
@@ -587,52 +548,45 @@ class Building extends GameObject {
     update(currentTime, deltaTime, enemyUnits, enemyTowers) {
         if (!this.isAlive) return;
         
-        // Handle status effects
         if (this.statusEffect.duration > 0) {
             this.statusEffect.duration -= (deltaTime / 1000);
             if (this.statusEffect.name === 'frozen') {
-                return; // Frozen
+                return;
             }
         } else if (this.statusEffect.name !== 'none') {
              this.applyStatus('none', 0);
         }
         
-        // Countdown lifetime
         this.lifetime -= (deltaTime / 1000);
         if (this.lifetime <= 0) {
             this.isAlive = false;
             return;
         }
 
-        // Countdown to spawn
         this.spawnTimer -= (deltaTime / 1000);
         if (this.spawnTimer <= 0) {
-            this.spawnTimer = this.stats.spawnRate; // Reset timer
+            this.spawnTimer = this.stats.spawnRate;
             this.spawnUnit();
         }
     }
     
     spawnUnit() {
         const x = this.x;
-        const y = this.y + (this.team === 'player' ? -20 : 20); // Spawn in front
+        const y = this.y + (this.team === 'player' ? -20 : 20);
         const target = (this.team === 'player') ? getBotTarget(x) : getPlayerTarget(x);
         
         if (this.stats.spawnType.spawnCount) {
-            // Spawn a swarm (e.g., Goblins, Skeletons)
             for(let i=0; i < this.stats.spawnType.spawnCount; i++) {
-                let spawnX = x + (Math.random() * 40 - 20); // Add random offset
+                let spawnX = x + (Math.random() * 40 - 20);
                 let spawnY = y + (Math.random() * 40 - 20);
                 deployUnit(this.team, this.stats.spawnType, spawnX, spawnY, target);
             }
         } else {
-            // Spawn a single unit
             deployUnit(this.team, this.stats.spawnType, x, y, target);
         }
     }
     
-    drawName() {
-        // Buildings don't have names drawn
-    }
+    drawName() { /* Buildings don't have names */ }
 }
 
 
@@ -641,13 +595,12 @@ class SpellEffect extends GameObject {
         super(x, y, 0, 0, team, stats);
         this.radius = stats.radius;
         this.damage = stats.damage || 0;
-        this.lifetime = 0.5; // Short visual effect
+        this.lifetime = 0.5;
         
-        // --- NEW: Apply spell effects ---
         if (stats.effect) {
             this.effect = stats.effect;
             this.effectDuration = stats.duration;
-            this.lifetime = 1.0; // Last longer so effect is visible
+            this.lifetime = 1.0;
         }
     }
 
@@ -672,8 +625,8 @@ class SpellEffect extends GameObject {
     }
 
     draw() {
-        let color = 'rgba(0,0,0,0)'; // transparent
-        if (this.damage > 0) color = 'rgba(255, 100, 0, 0.5)'; // Fireball
+        let color = 'rgba(0,0,0,0)';
+        if (this.damage > 0) color = 'rgba(255, 100, 0, 0.5)';
         if (this.effect === 'freeze') color = 'rgba(100, 200, 255, 0.4)';
         if (this.effect === 'rage') color = 'rgba(255, 0, 255, 0.3)';
         
@@ -756,7 +709,7 @@ class HitSplat extends GameObject {
 function getDistance(obj1, obj2) {
     if (!obj1 || !obj2) return Infinity;
     const x1 = obj1.x;
-    const y1 = obj1.y;
+    const y1 = obj1.y; // <-- FIXED
     const x2 = obj2.x;
     const y2 = obj2.y;
     return Math.hypot(x1 - x2, y1 - y2);
@@ -776,7 +729,6 @@ function getPlayerTarget(x) {
     return target;
 }
 
-// --- UPDATED: deployUnit now handles buildings/spawners ---
 function deployUnit(team, stats, x, y, pathTarget) {
     let unit;
     if (stats.type === 'Building') {
@@ -787,7 +739,6 @@ function deployUnit(team, stats, x, y, pathTarget) {
         unit = new Unit(x, y, team, stats, pathTarget);
     }
     
-    // Handle swarm cards
     if (stats.spawnCount) {
         for(let i=0; i < stats.spawnCount; i++) {
             let spawnX = x + (Math.random() * 40 - 20);
@@ -802,7 +753,7 @@ function deployUnit(team, stats, x, y, pathTarget) {
 function deploySpell(team, stats, x, y) {
     const allEnemies = allGameObjects.filter(o => o.team !== team && o.isAlive);
     const spell = new SpellEffect(x, y, team, stats);
-    spell.applyEffect(allEnemies); // Apply damage AND/OR status
+    spell.applyEffect(allEnemies);
     allGameObjects.push(spell);
 }
 
@@ -859,6 +810,28 @@ function addRandomCardToDeck(team) {
 
 
 function setupGame() {
+    // --- This is where we assign the elements ---
+    canvas = document.getElementById('game-canvas');
+    ctx = canvas.getContext('2d');
+    gameOverScreen = document.getElementById('game-over-screen');
+
+    playerElixirDisplay = document.getElementById('player-elixir-display');
+    playerCardElements = [
+        document.getElementById('card-0'),
+        document.getElementById('card-1'),
+        document.getElementById('card-2'),
+        document.getElementById('card-3')
+    ];
+    botElixirDisplay = document.getElementById('bot-elixir-display');
+    botCardElements = [
+        document.getElementById('bot-card-0'),
+        document.getElementById('bot-card-1'),
+        document.getElementById('bot-card-2'),
+        document.getElementById('bot-card-3')
+    ];
+    twoPlayerButton = document.getElementById('two-player-toggle');
+    // --- End element assignment ---
+
     playerKing = new Tower(WIDTH / 2, HEIGHT - 60, 'player', KING_TOWER_STATS);
     playerP1 = new Tower(WIDTH / 4, HEIGHT - 120, 'player', PRINCESS_TOWER_STATS);
     playerP2 = new Tower(WIDTH * 3 / 4, HEIGHT - 120, 'player', PRINCESS_TOWER_STATS);
@@ -910,7 +883,7 @@ function updateUI() {
         const name = cardStats ? cardStats.name : '...';
         const cost = cardStats ? cardStats.cost : '?';
         cardEl.innerHTML = `
-            <div class.card-name">${name}</div>
+            <div class="card-name">${name}</div>
             <div class="card-cost">${cost}</div>
         `;
         if (cardStats && playerElixir >= cardStats.cost) {
@@ -1009,10 +982,10 @@ function update(currentTime, deltaTime) {
 
     allGameObjects = allGameObjects.filter(obj => obj.isAlive);
 
-    if (!botKing.isAlive) {
+    if (botKing && !botKing.isAlive) {
         gameOver = true;
         winner = "Player 1 Wins!";
-    } else if (!playerKing.isAlive) {
+    } else if (playerKing && !playerKing.isAlive) {
         gameOver = true;
         winner = "Player 2 Wins!";
     }
@@ -1023,17 +996,15 @@ function update(currentTime, deltaTime) {
 function drawArena() {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
     
-    // Grass
     ctx.fillStyle = GRASS_COLOR;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     
-    // Dirt paths
     ctx.fillStyle = DIRT_COLOR;
     ctx.beginPath();
     ctx.moveTo(LEFT_BRIDGE_X - 30, 0);
     ctx.lineTo(LEFT_BRIDGE_X + 30, 0);
     ctx.lineTo(LEFT_BRIDGE_X + 30, RIVER_Y - 15);
-    ctx.lineTo(WIDTH / 4 - 30, RIVER_Y - 15);
+    ctx.lineTo(LEFT_BRIDGE_X - 30, RIVER_Y - 15);
     ctx.closePath();
     ctx.fill();
     
@@ -1041,7 +1012,7 @@ function drawArena() {
     ctx.moveTo(RIGHT_BRIDGE_X - 30, 0);
     ctx.lineTo(RIGHT_BRIDGE_X + 30, 0);
     ctx.lineTo(RIGHT_BRIDGE_X + 30, RIVER_Y - 15);
-    ctx.lineTo(WIDTH * 3 / 4 - 30, RIVER_Y - 15);
+    ctx.lineTo(RIGHT_BRIDGE_X - 30, RIVER_Y - 15);
     ctx.closePath();
     ctx.fill();
     
@@ -1049,7 +1020,7 @@ function drawArena() {
     ctx.moveTo(LEFT_BRIDGE_X - 30, HEIGHT);
     ctx.lineTo(LEFT_BRIDGE_X + 30, HEIGHT);
     ctx.lineTo(LEFT_BRIDGE_X + 30, RIVER_Y + 15);
-    ctx.lineTo(WIDTH / 4 - 30, RIVER_Y + 15);
+    ctx.lineTo(LEFT_BRIDGE_X - 30, RIVER_Y + 15);
     ctx.closePath();
     ctx.fill();
     
@@ -1057,19 +1028,16 @@ function drawArena() {
     ctx.moveTo(RIGHT_BRIDGE_X - 30, HEIGHT);
     ctx.lineTo(RIGHT_BRIDGE_X + 30, HEIGHT);
     ctx.lineTo(RIGHT_BRIDGE_X + 30, RIVER_Y + 15);
-    ctx.lineTo(WIDTH * 3 / 4 - 30, RIVER_Y + 15);
+    ctx.lineTo(RIGHT_BRIDGE_X - 30, RIVER_Y + 15);
     ctx.closePath();
     ctx.fill();
 
-    // Water
     ctx.fillStyle = WATER_COLOR;
     ctx.fillRect(0, RIVER_Y - 10, WIDTH, 20);
     
-    // Bridges
     ctx.fillStyle = BRIDGE_COLOR;
     ctx.fillRect(LEFT_BRIDGE_X - 30, RIVER_Y - 15, 60, 30);
     ctx.fillRect(RIGHT_BRIDGE_X - 30, RIVER_Y - 15, 60, 30);
-    // Bridge planks
     ctx.strokeStyle = '#663300';
     ctx.lineWidth = 2;
     for(let i = -25; i <= 25; i += 10) {
@@ -1152,6 +1120,13 @@ function onCanvasClick(event) {
             deploySpell('player', selectedCard.stats, x, y);
             playerDeckNextCardIndex = drawNextCard(playerDeck, playerHand, selectedCard.index, playerDeckNextCardIndex);
         }
+        else if (selectedCard.stats.type === 'Building') {
+             if (y > RIVER_Y && y < HEIGHT) { // Can only place buildings on your side
+                playerElixir -= selectedCard.stats.cost;
+                deployUnit('player', selectedCard.stats, x, y, null); // Buildings don't have a path target
+                playerDeckNextCardIndex = drawNextCard(playerDeck, playerHand, selectedCard.index, playerDeckNextCardIndex);
+             }
+        }
         else if (y > RIVER_Y && y < HEIGHT) {
             playerElixir -= selectedCard.stats.cost;
             const target = getBotTarget(x);
@@ -1164,6 +1139,13 @@ function onCanvasClick(event) {
             botElixir -= selectedCard.stats.cost;
             deploySpell('bot', selectedCard.stats, x, y);
             botDeckNextCardIndex = drawNextCard(botDeck, botHand, selectedCard.index, botDeckNextCardIndex);
+        }
+        else if (selectedCard.stats.type === 'Building') {
+             if (y < RIVER_Y && y > 0) { // Can only place buildings on your side
+                botElixir -= selectedCard.stats.cost;
+                deployUnit('bot', selectedCard.stats, x, y, null); // Buildings don't have a path target
+                botDeckNextCardIndex = drawNextCard(botDeck, botHand, selectedCard.index, botDeckNextCardIndex);
+             }
         }
         else if (y < RIVER_Y && y > 0) {
             botElixir -= selectedCard.stats.cost;
@@ -1197,5 +1179,6 @@ function gameLoop(currentTime) {
 }
 
 // --- Start the game! ---
+// This code now runs *safely* because the script tag is at the end of the <body>
 console.log("Game is starting...");
 setupGame();
