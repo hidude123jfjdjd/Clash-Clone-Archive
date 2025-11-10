@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clash Clone</title>
+    <!-- This links to your CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <!-- === HTML STRUCTURE === -->
+    <div id="game-container">
+        
+        <!-- === RED PLAYER UI (hidden by default) === -->
+        <div id="bot-ui-bar">
+            <div id="bot-card-hand">
+                <div class="card" id="bot-card-0"></div>
+                <div class="card" id="bot-card-1"></div>
+                <div class="card" id="bot-card-2"></div>
+                <div class="card" id="bot-card-3"></div>
+            </div>
+            <div id="bot-elixir-container">
+                <div id="bot-elixir-display">4</div>
+                <div id="bot-elixir-label">ELIXIR</div>
+            </div>
+        </div>
+
+        <!-- The game is drawn here -->
+        <canvas id="game-canvas" width="480" height="600"></canvas>
+        
+        <!-- BLUE PLAYER UI -->
+        <div id="player-ui-bar">
+            <div id="player-elixir-container">
+                <div id="player-elixir-display">4</div>
+                <div id="player-elixir-label">ELIXIR</div>
+            </div>
+            <div id="player-card-hand">
+                <div class="card" id="card-0"></div>
+                <div class="card" id="card-1"></div>
+                <div class="card" id="card-2"></div>
+                <div class="card" id="card-3"></div>
+            </div>
+            <!-- === BUTTON MOVED HERE === -->
+            <button id="two-player-toggle">Toggle 2-Player</button>
+        </div>
+    </div>
+    
+    <!-- The Game Over popup -->
+    <div id="game-over-screen">Player Wins!</div>
+
+    <!-- The script is loaded LAST, after all HTML exists -->
+    <script src="script.js"></script>
+</body>
+</html>
