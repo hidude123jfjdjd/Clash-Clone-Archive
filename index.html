@@ -2,52 +2,67 @@
 <html>
 <head>
     <title>Clash Clone</title>
-    <!-- This links to your CSS file -->
+    <!-- Links the CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     
-    <!-- === HTML STRUCTURE === -->
-    <div id="game-container">
-        
-        <!-- === RED PLAYER UI (hidden by default) === -->
-        <div id="bot-ui-bar">
-            <div id="bot-card-hand">
-                <div class="card" id="bot-card-0"></div>
-                <div class="card" id="bot-card-1"></div>
-                <div class="card" id="bot-card-2"></div>
-                <div class="card" id="bot-card-3"></div>
-            </div>
-            <div id="bot-elixir-container">
-                <div id="bot-elixir-display">4</div>
-                <div id="bot-elixir-label">ELIXIR</div>
-            </div>
+    <!-- Bot/P2 UI (Hidden by default) -->
+    <div id="bot-ui-bar">
+        <!-- NEW: Bot Emote UI -->
+        <div class="emote-popup" id="bot-emote-popup">
+            <button class="emote-choice" id="bot-emote-wave">👋</button>
+            <button class="emote-choice" id="bot-emote-thumbsup">👍</button>
+            <button class="emote-choice" id="bot-emote-thumbsdown">👎</button>
+            <button class="emote-choice" id="bot-emote-angry">😠</button>
         </div>
-
-        <!-- The game is drawn here -->
-        <canvas id="game-canvas" width="480" height="600"></canvas>
-        
-        <!-- BLUE PLAYER UI -->
-        <div id="player-ui-bar">
-            <div id="player-elixir-container">
-                <div id="player-elixir-display">4</div>
-                <div id="player-elixir-label">ELIXIR</div>
-            </div>
-            <div id="player-card-hand">
-                <div class="card" id="card-0"></div>
-                <div class="card" id="card-1"></div>
-                <div class="card" id="card-2"></div>
-                <div class="card" id="card-3"></div>
-            </div>
-            <!-- === BUTTON MOVED HERE === -->
-            <button id="two-player-toggle">Toggle 2-Player</button>
+        <button class="emote-button" id="bot-emote-button">👋</button>
+        <!-- End Emote UI -->
+        <div class="card-hand" id="bot-card-hand">
+            <div class="card" id="bot-card-0"></div>
+            <div class="card" id="bot-card-1"></div>
+            <div class="card" id="bot-card-2"></div>
+            <div class="card" id="bot-card-3"></div>
+        </div>
+        <div class="elixir-container" id="bot-elixir-container">
+            <div class="elixir-display" id="bot-elixir-display">4</div>
+            <div class="elixir-label">ELIXIR</div>
         </div>
     </div>
-    
-    <!-- The Game Over popup -->
-    <div id="game-over-screen">Player Wins!</div>
 
-    <!-- The script is loaded LAST, after all HTML exists -->
+    <!-- Main Game Canvas -->
+    <div id="game-container">
+        <canvas id="game-canvas" width="480" height="600"></canvas>
+    </div>
+
+    <!-- Player 1 UI -->
+    <div id="player-ui-bar">
+        <div class="elixir-container" id="player-elixir-container">
+            <div class="elixir-display" id="player-elixir-display">4</div>
+            <div class="elixir-label">ELIXIR</div>
+        </div>
+        <div class="card-hand" id="player-card-hand">
+            <div class="card" id="card-0"></div>
+            <div class="card" id="card-1"></div>
+            <div class="card" id="card-2"></div>
+            <div class="card" id="card-3"></div>
+        </div>
+        <!-- NEW: Player Emote UI -->
+        <div class="emote-popup" id="player-emote-popup">
+            <button class="emote-choice" id="player-emote-wave">👋</button>
+            <button class="emote-choice" id="player-emote-thumbsup">👍</button>
+            <button class="emote-choice" id="player-emote-thumbsdown">👎</button>
+            <button class="emote-choice" id="player-emote-angry">😠</button>
+        </div>
+        <button class="emote-button" id="player-emote-button">👋</button>
+        <!-- End Emote UI -->
+        <button id="two-player-toggle">Enable 2-Player (Bot OFF)</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen">Player Wins!</div>
+    
+    <!-- SCRIPT IS AT THE VERY END OF THE BODY -->
     <script src="script.js"></script>
 </body>
 </html>
