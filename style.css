@@ -4,7 +4,7 @@ body {
     color: white;
     font-family: Arial, sans-serif;
     display: flex;
-    flex-direction: column; /* --- CHANGED: Stack UI and Game --- */
+    flex-direction: column; /* Stack UI and Game */
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -17,15 +17,14 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* --- NEW: Add a border around the whole game --- */
+    /* Add a border around the whole game */
     border: 3px solid #fff;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
 #game-canvas {
-    background-color: #2a9d4a; /* --- NEW: Grass Color --- */
-    /* Borders are now on the container */
+    background-color: #2a9d4a; /* Grass Color */
 }
 
 /* === UI Bars (Both Players) === */
@@ -39,22 +38,22 @@ body {
     background-color: #333;
     padding: 10px;
     box-sizing: border-box;
+    position: relative; /* Needed for emote popups */
 }
 
 #player-ui-bar {
-    border-top: 3px solid #fff; /* Separator line */
-    order: 3; /* Show at bottom */
+    border-top: 3px solid #fff;
+    order: 3;
 }
 
 #bot-ui-bar {
-    border-bottom: 3px solid #fff; /* Separator line */
-    order: 1; /* Show at top */
-    display: none; /* --- NEW: Hide by default --- */
+    border-bottom: 3px solid #fff;
+    order: 1;
+    display: none;
 }
 
-/* --- NEW: 2-Player Mode --- */
 body.two-player-mode #bot-ui-bar {
-    display: flex; /* Show the bot's UI */
+    display: flex;
 }
 
 /* === Elixir Container === */
@@ -85,7 +84,7 @@ body.two-player-mode #bot-ui-bar {
 /* === Card Hand === */
 .card-hand {
     display: flex;
-    gap: 10px; /* Space between cards */
+    gap: 10px;
 }
 
 .card {
@@ -128,7 +127,7 @@ body.two-player-mode #bot-ui-bar {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
-    display: none; /* Hidden by default */
+    display: none;
     justify-content: center;
     align-items: center;
     font-size: 72px;
@@ -156,4 +155,54 @@ body.two-player-mode #bot-ui-bar {
 
 #two-player-toggle:hover {
     background-color: #0056b3;
+}
+
+/* === NEW: Emote Button & Popup === */
+.emote-button {
+    height: 90px;
+    width: 50px;
+    font-size: 30px;
+    background-color: #555;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+#player-emote-button { margin-left: 10px; }
+#bot-emote-button { margin-right: 10px; }
+
+.emote-button:hover {
+    background-color: #777;
+}
+
+.emote-popup {
+    position: absolute;
+    display: none; /* Hidden by default */
+    background-color: #1a1a1a;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    padding: 10px;
+    z-index: 200;
+    display: none;
+    gap: 10px;
+}
+
+/* Position popups above/below the UI bar */
+#player-emote-popup {
+    bottom: 100%; /* Position above the player bar */
+    left: 10px;
+}
+#bot-emote-popup {
+    top: 100%; /* Position below the bot bar */
+    right: 10px;
+}
+
+.emote-choice {
+    font-size: 30px;
+    background: #444;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.emote-choice:hover {
+    background: #666;
 }
