@@ -1,9 +1,12 @@
 // --- 1. SETUP & CONSTANTS ---
 console.log("script.js is running...");
 
-// --- This is the new, safe way to get elements ---
-// We *define* the variables here, but we *assign* them in setupGame()
 let canvas, ctx, gameOverScreen, playerElixirDisplay, playerCardElements, botElixirDisplay, botCardElements, twoPlayerButton;
+
+// --- NEW: Emote UI Elements ---
+let playerEmoteButton, botEmoteButton, playerEmotePopup, botEmotePopup;
+let playerEmoteChoices = {};
+let botEmoteChoices = {};
 
 const WIDTH = 480;
 const HEIGHT = 600;
@@ -25,21 +28,16 @@ const HIT_SPLAT_COLOR = 'rgba(255, 255, 255, 0.8)';
 const ICE_EFFECT_COLOR = 'rgba(100, 200, 255, 0.3)';
 const RANGED_ATTACK_THRESHOLD = 50;
 
-// --- NEW MAP COLORS ---
 const GRASS_COLOR = '#2a9d4a';
 const DIRT_COLOR = '#8b5a2b';
 const BRIDGE_COLOR = '#a0522d';
 const WATER_COLOR = '#4040ff';
 
-// --- NEW MASTER CARD LIST (24 Cards) ---
-
-// --- Spells ---
+// --- MASTER CARD LIST ---
 const FIREBALL_STATS = { name: 'Fireball', cost: 4, damage: 200, radius: 60, type: 'Spell' };
 const ARROWS_STATS = { name: 'Arrows', cost: 3, damage: 100, radius: 100, type: 'Spell' };
 const RAGE_STATS = { name: 'Rage', cost: 2, radius: 80, type: 'Spell', effect: 'rage', duration: 5 };
 const FREEZE_STATS = { name: 'Freeze', cost: 4, radius: 70, type: 'Spell', effect: 'freeze', duration: 3 };
-
-// --- Ground Units (Melee) ---
 const KNIGHT_STATS = { name: 'Knight', cost: 3, hp: 150, damage: 15, attackRange: 30, attackSpeed: 1, speed: 1.2, width: 25, targetType: 'Ground', colors: ['#aaa', '#f0e68c'], detail: {type: 'line', color: 'white', w: 20, h: 3} };
 const VALKYRIE_STATS = { name: 'Valkyrie', cost: 4, hp: 200, damage: 20, attackRange: 30, attackSpeed: 1.2, speed: 1.2, width: 28, targetType: 'Ground', aoe: true, colors: ['#ff8c00', '#f0e68c'], detail: {type: 'line', color: '#aaa', w: 30, h: 4} };
 const MINI_PEKKA_STATS = { name: 'Mini P.E.K.K.A', cost: 4, hp: 180, damage: 50, attackRange: 30, attackSpeed: 1.5, speed: 1.4, width: 28, targetType: 'Ground', colors: ['#555', '#4682b4'], detail: {type: 'line', color: 'skyblue', w: 25, h: 4} };
@@ -47,23 +45,15 @@ const PEKKA_STATS = { name: 'P.E.K.K.A', cost: 7, hp: 600, damage: 100, attackRa
 const GOBLINS_STATS = { name: 'Goblins', cost: 2, hp: 30, damage: 10, attackRange: 25, attackSpeed: 0.8, speed: 2.0, width: 15, targetType: 'Ground', spawnCount: 3, colors: ['#006400', '#90ee90'], detail: {type: 'line', color: 'brown', w: 10, h: 2} };
 const SKELETONS_STATS = { name: 'Skeletons', cost: 1, hp: 10, damage: 5, attackRange: 25, attackSpeed: 1, speed: 1.8, width: 12, targetType: 'Ground', spawnCount: 3, colors: ['#fff', '#ccc'], detail: {type: 'line', color: 'grey', w: 10, h: 2} };
 const ICE_KNIGHT_STATS = { name: 'Ice Knight', cost: 4, hp: 200, damage: 10, attackRange: 30, attackSpeed: 1.2, speed: 1.2, width: 25, targetType: 'Ground', freeze: 1.5, colors: ['#afeeee', '#fff'], detail: {type: 'line', color: 'blue', w: 20, h: 3} };
-
-// --- Ground Units (Ranged) ---
 const ARCHER_STATS = { name: 'Archer', cost: 3, hp: 80, damage: 10, attackRange: 150, attackSpeed: 0.8, speed: 1.2, width: 20, targetType: 'Ground', colors: ['#ff69b4', '#f0e68c'], detail: {type: 'dot', color: 'magenta'} };
 const WIZARD_STATS = { name: 'Wizard', cost: 5, hp: 120, damage: 40, attackRange: 160, attackSpeed: 1.4, speed: 1.1, width: 26, targetType: 'Ground', aoe: true, colors: ['#0000cd', '#f0e68c'], detail: {type: 'dot', color: 'orange'} };
 const MUSKETEER_STATS = { name: 'Musketeer', cost: 4, hp: 130, damage: 30, attackRange: 180, attackSpeed: 1.0, speed: 1.2, width: 22, targetType: 'Ground', colors: ['#800000', '#f0e68c'], detail: {type: 'dot', color: 'yellow'} };
-
-// --- Ground Units (Building-Targeters) ---
 const GIANT_STATS = { name: 'Giant', cost: 5, hp: 500, damage: 25, attackRange: 30, attackSpeed: 1.5, speed: 0.7, width: 40, targetType: 'Buildings', colors: ['#f0e68c', '#d2691e'], detail: {type: 'line', color: 'brown', w: 35, h: 8} };
 const HOG_RIDER_STATS = { name: 'Hog Rider', cost: 4, hp: 250, damage: 40, attackRange: 30, attackSpeed: 1.2, speed: 2.0, width: 30, targetType: 'Buildings', colors: ['#f0e68c', '#8b4513'], detail: {type: 'line', color: 'grey', w: 15, h: 5} };
 const GOLEM_STATS = { name: 'Golem', cost: 8, hp: 1000, damage: 60, attackRange: 40, attackSpeed: 2.0, speed: 0.6, width: 50, targetType: 'Buildings', colors: ['#444', '#8a2be2'], detail: {type: 'dot', color: 'purple'} };
-
-// --- Flying Units ---
 const MINIONS_STATS = { name: 'Minions', cost: 3, hp: 50, damage: 15, attackRange: 30, attackSpeed: 1, speed: 1.8, width: 18, targetType: 'Air', spawnCount: 3, colors: ['#00008b', '#4169e1'], detail: {type: 'line', color: 'black', w: 10, h: 2} };
 const BABY_DRAGON_STATS = { name: 'Baby Dragon', cost: 4, hp: 200, damage: 20, attackRange: 100, attackSpeed: 1.3, speed: 1.5, width: 30, targetType: 'Air', aoe: true, colors: ['#2e8b57', '#90ee90'], detail: {type: 'dot', color: 'orange'} };
 const LAVA_HOUND_STATS = { name: 'Lava Hound', cost: 7, hp: 800, damage: 10, attackRange: 40, attackSpeed: 1.5, speed: 0.9, width: 45, targetType: 'Buildings', colors: ['#a52a2a', '#333'], detail: {type: 'dot', color: 'red'} };
-
-// --- Spawners (Buildings) ---
 const GOBLIN_HUT_STATS = { name: 'Goblin Hut', cost: 5, hp: 300, type: 'Building', spawnType: GOBLINS_STATS, spawnRate: 5.0, lifetime: 30, width: 50, height: 50, colors: ['#8b4513', '#006400'] };
 const SKELETON_TOMB_STATS = { name: 'Tombstone', cost: 3, hp: 200, type: 'Building', spawnType: SKELETONS_STATS, spawnRate: 3.0, lifetime: 25, width: 40, height: 40, colors: ['#888', '#555'] };
 const FURNACE_STATS = { name: 'Furnace', cost: 4, hp: 250, type: 'Building', spawnType: { name: 'Fire Spirit', cost: 0, hp: 20, damage: 30, attackRange: 30, attackSpeed: 1, speed: 2.2, width: 15, targetType: 'Ground', aoe: true, colors:['#ff4500', '#ffff00'], detail: {type:'dot', color:'red'} }, spawnRate: 6.0, lifetime: 30, width: 45, height: 45, colors: ['#555', '#ff4500'] };
@@ -121,7 +111,7 @@ class GameObject {
     }
 
     drawShadow() {
-        if (this instanceof Projectile || this instanceof SpellEffect || this instanceof HitSplat || this.stats.targetType === 'Air') return;
+        if (this instanceof Projectile || this instanceof SpellEffect || this instanceof HitSplat || this instanceof EmoteEffect || this.stats.targetType === 'Air') return;
         
         ctx.fillStyle = SHADOW_COLOR;
         ctx.beginPath();
@@ -236,9 +226,9 @@ class GameObject {
         this.statusEffect.duration = duration;
         
         if (name === 'rage') {
-            this.stats.attackSpeed = this.originalAttackSpeed / 2; // Attack twice as fast
+            this.stats.attackSpeed = this.originalAttackSpeed / 2;
         } else if (name === 'none') {
-            this.stats.attackSpeed = this.originalAttackSpeed; // Reset
+            this.stats.attackSpeed = this.originalAttackSpeed;
         }
     }
     
@@ -257,7 +247,7 @@ class GameObject {
         
         let attackableEnemies = [];
         if (this.stats.targetType === 'Air') {
-             attackableEnemies = [...enemyUnits, ...enemyTowers]; // Flying units hit air & ground
+             attackableEnemies = [...enemyUnits, ...enemyTowers];
         } else {
             attackableEnemies = [...enemyUnits.filter(e => e.stats.targetType !== 'Air'), ...enemyTowers];
         }
@@ -475,6 +465,7 @@ class Unit extends GameObject {
             if (distance <= this.stats.attackRange) {
                 this.attack(currentTime);
             } else {
+                // Ranged units will stop, melee/giants will move
                 if (this.stats.attackRange <= RANGED_ATTACK_THRESHOLD || this.stats.targetType === 'Buildings') {
                     this.moveTowards(this.target); 
                 }
@@ -483,8 +474,11 @@ class Unit extends GameObject {
             // No enemy target, follow the path
             if (this.stats.targetType === 'Buildings') {
                  this.pathTarget = (this.team === 'player') ? getBotTarget(this.x) : getPlayerTarget(this.x);
-                 if(this.pathTarget) this.target = this.pathTarget; // Re-assign target
-                 return; 
+                 if(this.pathTarget) {
+                     // We don't set target, we set path!
+                 } else {
+                     return; // No towers left
+                 }
             }
 
             if (!this.pathTarget || !this.pathTarget.isAlive) {
@@ -512,13 +506,11 @@ class Unit extends GameObject {
     }
 
     moveTowards(target) {
-        // --- CRITICAL BUG FIX 1 ---
-        const dx = target.x - this.x; // <-- FIXED
+        const dx = target.x - this.x;
         const dy = target.y - this.y;
         const distance = Math.hypot(dx, dy);
 
-        // --- CRITICAL BUG FIX 2 ---
-        if (distance < 1) { // Stop divide by zero
+        if (distance < 1) { 
             return;
         }
         
@@ -532,8 +524,8 @@ class Unit extends GameObject {
             this.x += (dx / distance) * this.stats.speed;
             this.y += (dy / distance) * this.stats.speed;
         } else {
-            this.x += dx;
-            this.y += dy;
+            this.x = target.x;
+            this.y = target.y;
         }
     }
 }
@@ -703,13 +695,43 @@ class HitSplat extends GameObject {
     }
 }
 
+// --- NEW: Emote Class ---
+class EmoteEffect extends GameObject {
+    constructor(x, y, team, emoji) {
+        super(x, y, 0, 0, team, {});
+        this.emoji = emoji;
+        this.lifetime = 2.0; // Lasts for 2 seconds
+        this.opacity = 1.0;
+    }
+    
+    update(currentTime, deltaTime) {
+        this.lifetime -= (deltaTime / 1000);
+        if (this.lifetime <= 0) {
+            this.isAlive = false;
+        }
+        // Start fading in the last 0.5 seconds
+        if (this.lifetime < 0.5) {
+            this.opacity = this.lifetime / 0.5;
+        }
+    }
+    
+    draw() {
+        ctx.globalAlpha = this.opacity; // Apply fade
+        ctx.font = '40px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.emoji, this.x, this.y);
+        ctx.globalAlpha = 1.0; // Reset alpha
+    }
+}
+
 
 // --- 3. HELPER FUNCTIONS ---
 
 function getDistance(obj1, obj2) {
     if (!obj1 || !obj2) return Infinity;
     const x1 = obj1.x;
-    const y1 = obj1.y; // <-- FIXED
+    const y1 = obj1.y;
     const x2 = obj2.x;
     const y2 = obj2.y;
     return Math.hypot(x1 - x2, y1 - y2);
@@ -743,7 +765,11 @@ function deployUnit(team, stats, x, y, pathTarget) {
         for(let i=0; i < stats.spawnCount; i++) {
             let spawnX = x + (Math.random() * 40 - 20);
             let spawnY = y + (Math.random() * 40 - 20);
-            allGameObjects.push(new Unit(spawnX, spawnY, team, stats, pathTarget));
+            if (stats.name === 'Ice Knight') {
+                 allGameObjects.push(new IceKnight(spawnX, spawnY, team, stats, pathTarget));
+            } else {
+                 allGameObjects.push(new Unit(spawnX, spawnY, team, stats, pathTarget));
+            }
         }
     } else {
         allGameObjects.push(unit);
@@ -765,6 +791,20 @@ function spawnProjectile(attacker, target, team, damage) {
 function spawnHitSplat(x, y, baseWidth, color = HIT_SPLAT_COLOR) {
     const splat = new HitSplat(x, y, baseWidth, color);
     allGameObjects.push(splat);
+}
+
+// --- NEW: Emote Spawner ---
+function spawnEmote(team, emoji) {
+    let x = 0;
+    let y = 0;
+    if (team === 'player') {
+        x = playerKing.x;
+        y = playerKing.y - playerKing.height / 2 - 30; // Above King
+    } else {
+        x = botKing.x;
+        y = botKing.y + botKing.height / 2 + 30; // Below King
+    }
+    allGameObjects.push(new EmoteEffect(x, y, team, emoji));
 }
 
 function drawNextCard(deck, hand, handIndex, nextCardIndex) {
@@ -810,7 +850,7 @@ function addRandomCardToDeck(team) {
 
 
 function setupGame() {
-    // --- This is where we assign the elements ---
+    // --- Assign elements ---
     canvas = document.getElementById('game-canvas');
     ctx = canvas.getContext('2d');
     gameOverScreen = document.getElementById('game-over-screen');
@@ -830,6 +870,25 @@ function setupGame() {
         document.getElementById('bot-card-3')
     ];
     twoPlayerButton = document.getElementById('two-player-toggle');
+    
+    // --- NEW: Emote element assignments ---
+    playerEmoteButton = document.getElementById('player-emote-button');
+    botEmoteButton = document.getElementById('bot-emote-button');
+    playerEmotePopup = document.getElementById('player-emote-popup');
+    botEmotePopup = document.getElementById('bot-emote-popup');
+    
+    playerEmoteChoices = {
+        wave: document.getElementById('player-emote-wave'),
+        thumbsUp: document.getElementById('player-emote-thumbsup'),
+        thumbsDown: document.getElementById('player-emote-thumbsdown'),
+        angry: document.getElementById('player-emote-angry')
+    };
+    botEmoteChoices = {
+        wave: document.getElementById('bot-emote-wave'),
+        thumbsUp: document.getElementById('bot-emote-thumbsup'),
+        thumbsDown: document.getElementById('bot-emote-thumbsdown'),
+        angry: document.getElementById('bot-emote-angry')
+    };
     // --- End element assignment ---
 
     playerKing = new Tower(WIDTH / 2, HEIGHT - 60, 'player', KING_TOWER_STATS);
@@ -869,6 +928,25 @@ function setupGame() {
             botPlayTimer = performance.now();
         }
     });
+    
+    // --- NEW: Emote Click Listeners ---
+    playerEmoteButton.addEventListener('click', () => {
+        playerEmotePopup.style.display = (playerEmotePopup.style.display === 'flex') ? 'none' : 'flex';
+    });
+    botEmoteButton.addEventListener('click', () => {
+        botEmotePopup.style.display = (botEmotePopup.style.display === 'flex') ? 'none' : 'flex';
+    });
+    
+    playerEmoteChoices.wave.addEventListener('click', () => { spawnEmote('player', '👋'); playerEmotePopup.style.display = 'none'; });
+    playerEmoteChoices.thumbsUp.addEventListener('click', () => { spawnEmote('player', '👍'); playerEmotePopup.style.display = 'none'; });
+    playerEmoteChoices.thumbsDown.addEventListener('click', () => { spawnEmote('player', '👎'); playerEmotePopup.style.display = 'none'; });
+    playerEmoteChoices.angry.addEventListener('click', () => { spawnEmote('player', '😠'); playerEmotePopup.style.display = 'none'; });
+    
+    botEmoteChoices.wave.addEventListener('click', () => { spawnEmote('bot', '👋'); botEmotePopup.style.display = 'none'; });
+    botEmoteChoices.thumbsUp.addEventListener('click', () => { spawnEmote('bot', '👍'); botEmotePopup.style.display = 'none'; });
+    botEmoteChoices.thumbsDown.addEventListener('click', () => { spawnEmote('bot', '👎'); botEmotePopup.style.display = 'none'; });
+    botEmoteChoices.angry.addEventListener('click', () => { spawnEmote('bot', '😠'); botEmotePopup.style.display = 'none'; });
+    // --- End Emote Listeners ---
 
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -1055,9 +1133,11 @@ function drawArena() {
 function draw() {
     drawArena();
     
-    const gameUnits = allGameObjects.filter(o => !(o instanceof SpellEffect || o instanceof Projectile || o instanceof HitSplat));
+    const gameUnits = allGameObjects.filter(o => !(o instanceof SpellEffect || o instanceof Projectile || o instanceof HitSplat || o instanceof EmoteEffect));
     const effects = allGameObjects.filter(o => (o instanceof SpellEffect || o instanceof Projectile || o instanceof HitSplat));
+    const emotes = allGameObjects.filter(o => o instanceof EmoteEffect);
     
+    // Draw units and towers in Y-order
     gameUnits.sort((a, b) => a.y - b.y);
     
     gameUnits.forEach(obj => {
@@ -1066,7 +1146,15 @@ function draw() {
         }
     });
     
+    // Draw all effects on top
     effects.forEach(obj => {
+        if (obj.isAlive) {
+            obj.draw();
+        }
+    });
+    
+    // Draw emotes on the very top
+    emotes.forEach(obj => {
         if (obj.isAlive) {
             obj.draw();
         }
@@ -1121,9 +1209,9 @@ function onCanvasClick(event) {
             playerDeckNextCardIndex = drawNextCard(playerDeck, playerHand, selectedCard.index, playerDeckNextCardIndex);
         }
         else if (selectedCard.stats.type === 'Building') {
-             if (y > RIVER_Y && y < HEIGHT) { // Can only place buildings on your side
+             if (y > RIVER_Y && y < HEIGHT) {
                 playerElixir -= selectedCard.stats.cost;
-                deployUnit('player', selectedCard.stats, x, y, null); // Buildings don't have a path target
+                deployUnit('player', selectedCard.stats, x, y, null);
                 playerDeckNextCardIndex = drawNextCard(playerDeck, playerHand, selectedCard.index, playerDeckNextCardIndex);
              }
         }
@@ -1141,9 +1229,9 @@ function onCanvasClick(event) {
             botDeckNextCardIndex = drawNextCard(botDeck, botHand, selectedCard.index, botDeckNextCardIndex);
         }
         else if (selectedCard.stats.type === 'Building') {
-             if (y < RIVER_Y && y > 0) { // Can only place buildings on your side
+             if (y < RIVER_Y && y > 0) {
                 botElixir -= selectedCard.stats.cost;
-                deployUnit('bot', selectedCard.stats, x, y, null); // Buildings don't have a path target
+                deployUnit('bot', selectedCard.stats, x, y, null);
                 botDeckNextCardIndex = drawNextCard(botDeck, botHand, selectedCard.index, botDeckNextCardIndex);
              }
         }
@@ -1179,6 +1267,5 @@ function gameLoop(currentTime) {
 }
 
 // --- Start the game! ---
-// This code now runs *safely* because the script tag is at the end of the <body>
 console.log("Game is starting...");
 setupGame();
